@@ -1,0 +1,721 @@
+#define _CRT_SECURE_NO_WARNINGS
+// this help  to use of scanf() and printf()\*
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+
+extern int errno;
+
+/* Constants */
+#define DISCOUNT_MIN_AGE 18
+#define DISCOUNT_MAX_AGE 29
+//this gives 0.05 discount  for customer
+#define DISCOUNT_PERCENTAGE 0.05f
+#define MAX_SALES 10
+#define FUEL_TYPE 4
+#define TOTAL_CAR_MODELS 10
+// by using this we can create a file
+#define CSV_FILE "data.csv"
+
+// this constants will  help the code to run properly
+#define MENU_OPTION_VIEW_STOCKS 'f'
+#define MENU_OPTION_BUY_CARS 'a'
+#define MENU_OPTION_VIEW_SALES 'b'
+#define MENU_OPTION_QUIT'x'
+#define MENU_OPTION_INFO 'd'
+#define TRUE 1
+#define FALSE 0
+//structure declaration
+struct information{
+    char name[40];//name of the company
+    char year [10];// year of the company
+    char founder[20];// founder of the company
+    char award [50];//award for company
+    char phone [10];//phone number of the company
+};
+
+#define bool unsigned char
+
+/* Variables and arrays used in the function */
+// unsigned short is the best because negative value is not required
+unsigned short carsintheShowroom = 100;
+unsigned short fuelSelection;
+
+// this will keep track how many car sales took place
+// this will record the number of sale that have took place
+//		carAmountPerSale, typeOfcarPerSale, discountGivenPerSale, consumerNames
+unsigned short numberOfSales = 0;
+// this array will contain the information about the number of cars sold each sale
+unsigned short carAmountPerSale[MAX_SALES];
+// this array will contain the information about the type of the cars sold in each sale; this relates to the car price
+unsigned short typeOfCarPerSale[MAX_SALES];
+// this array will contain the information about the discount information about each sale
+bool discountGivenPerSale[MAX_SALES];
+// this array will contain the information  of the consumer for each sale, a maximum of 200 characters per name
+char consumerNames[MAX_SALES][201];
+// this array contain information about the number of avaiable in the showroom
+//
+ unsigned short carStocks[TOTAL_CAR_MODELS] = { 10,10,10,10,10,10,10,10,10,10 };
+// this array contain information about the price of each car
+unsigned carRates[] = { 4000, 2000, 4000, 6000, 5000, 3000, 4500, 1000, 3300, 7700, 9000};
+// this array contain information about car names
+char carNames[TOTAL_CAR_MODELS][200] = { "JAGUAR I-PACE", "TESLA", "PORSCHE TAYCAN", "MERCEDES-BENZ","LAMBORGHINI", "FERRARI", "TOYOTA SUPRA", "PORSCHE 718 CAYMAN", "GT-R", "FORD" };
+// this array contain information about fuel that are available for cars
+char carFuel[FUEL_TYPE] [20]= {"PETROL", "DIESEL", "HYDROGEN", "ELECTRIC"};
+// Files Constants
+#define FILE_OPENED 0
+#define FILE_CLOSED 1
+#define FILE_ERROR 2
+
+// when the file stream is opened , it will be held
+FILE* file;
+unsigned char fileStatus = FILE_CLOSED;
+
+/* Using the function */
+
+void clearScreen() {
+	system("cls");
+}
+
+void pauseProgram(char userChoice) {
+    //Stops the programme and allows the user to read the previous output based on the user's preference
+	if (userChoice == MENU_OPTION_QUIT) {
+		printf("\n\nPress Enter to Exit...");
+	}
+	else {
+		printf("\n\nPress Enter to return to the Menu...");
+	}
+
+
+	if (userChoice != '_') {
+		getchar();
+	}
+
+	getchar();
+}
+unsigned short getUnsignedShortFromConsole(char message[300]) {
+    // the purpose is to save the number that user input
+    unsigned short userInput;
+
+    // record the number
+    printf("%s", message);
+    scanf("%hd", &userInput);
+
+    //give back the captured number
+    return userInput;
+}
+
+char getCharFromConsole(char message[300]) {
+	char userInput;
+	// the purpose is to save the character that user input
+	printf("%s", message);
+	// record the character
+	scanf("\n%c", &userInput);
+	// give back the captured character
+	return userInput;
+}
+
+
+
+void getStringFromConsole(char* message, char* str) {
+	// supporting the user
+	printf("%s", message);
+	// now here this not  required ,rightnow we are on the pointer
+	scanf("\n%[^\n]s", str);
+}
+
+void swapUnsignedShort(unsigned short* a, unsigned short* b) {
+	unsigned short temp;
+	// transferring the value discovered from the pointer a's location towards recently formed temp variable
+	temp = *a;
+	// transferring the value  at the pointer a's location towards the location shown by the pointer b's
+	*a = *b;
+	// transferring the value of the temp variable towards the location of  pointer b's
+	*b = temp;
+}
+
+void swapBool(bool* a, bool* b) {
+	bool temp;
+	// transferring the value discovered at the pointer a's location towards the recently formed temp variable
+	temp = *a;
+	// transferring the value discovered at the pointer a's  towards the location shown by the pointer b's
+	*a = *b;
+	// transferring the temp variable's value to the location of pointer b's
+	*b = temp;
+}
+
+/* Beginning of the file function*/
+
+
+FILE* createFile(char fileName[201]) {
+	// file is opening to write and update
+	file = fopen(fileName, "w");
+	if (file != NULL) {
+		fclose(file);
+	}
+	return file;
+}
+
+
+void openFile(char fileName[201], char mode[4]) {
+	// trying to open the file
+	file = fopen(fileName, mode);
+
+	// when value become null
+	if (file == NULL) {
+
+		// first we  create a file and check whether it is null
+		// this indicates that something went wrong
+		if (createFile(fileName) == NULL) {
+			fileStatus = FILE_ERROR;
+
+			//  show error in opening the file
+			printf("Error opening %s: %s", fileName, strerror(errno));
+		}
+		else {
+			// now we are opening the file
+			openFile(fileName, mode);
+		}
+
+	}
+	// if nothing went wrong file opens
+	else {
+		fileStatus = FILE_OPENED;
+	}
+}
+
+// once we open a file we need to close a file too
+void closeFile() {
+	// if the file is opened then need to close
+	if (fileStatus == FILE_OPENED) {
+		fclose(file);
+        //then file close here
+		fileStatus = FILE_CLOSED;
+	}
+}
+
+
+void readDataFromFile() {
+	//read the lines from the file
+	int lineCounter = 0;
+
+	// an indefinite loop that will be manually terminated if we reach at the bottom of the file
+	while (1) {
+
+		unsigned short carAmountPerSaleValue = 0, typeOfcarPerSaleValue = 0, discountGivenPerSaleValue = 0;
+		char customerNameValue[201] = "";
+
+		int scanResult = fscanf(
+
+			file,
+			"%hd,%hd,%hd,%[^\n]s",
+			&carAmountPerSaleValue, // the variables
+			&typeOfcarPerSaleValue,
+			&discountGivenPerSaleValue,
+			customerNameValue
+		);
+
+		//  when arrive at the bottom of the  file
+		if (scanResult == EOF) {
+			// end for the loop
+			break;
+		}
+
+
+		carAmountPerSale[lineCounter] = carAmountPerSaleValue;
+		typeOfCarPerSale[lineCounter] = typeOfcarPerSaleValue;
+		//placing the discount per sales from array converting to given per sales value
+		discountGivenPerSale[lineCounter] = (bool)discountGivenPerSaleValue;
+		// because we are dealing sting we need to utilize strcpy
+		strcpy(consumerNames[lineCounter], customerNameValue);
+
+		// scan the upcoming line
+		lineCounter++;
+	}
+
+	// aware of sales that are available following the preceding procedure
+	numberOfSales = lineCounter;
+}
+
+void getDataFromFile() {
+	openFile(CSV_FILE, "r");
+
+	if (fileStatus == FILE_OPENED) {
+		readDataFromFile();
+	}
+	else if (fileStatus == FILE_ERROR) {
+		printf("When attempting to read from the file, an error occurred. %s.", CSV_FILE);
+		// the programming is not running due to error in the file
+		pauseProgram('_');
+	}
+
+	closeFile();
+}
+
+void writeDataToFile() {
+	// loop through
+	for (int i = 0; i < numberOfSales; i++) {
+
+		char line[201];
+		char data[50];
+
+		//changing the data string to variable into string and putting unsigned short value in the data string variable
+        //a typical numerical value 10 indicate base 10
+		_itoa((int)carAmountPerSale[i], data, 10);
+		//now we are using strcpy and including the rate of cars in a line
+		//		the main  use strcat  is to include more to the string
+		strcpy(line, data);
+		// to split the value we include a comma
+		strcat(line, ",");
+
+		// this value is transforming into string
+		_itoa((int)typeOfCarPerSale[i], data, 10);
+		// include  the kind of car to the line
+		strcat(line, data);
+		// to split the value we include a comma
+		strcat(line, ",");
+
+		// this value is transforming into string
+		_itoa((int)discountGivenPerSale[i], data, 10);
+		// including the discount
+		strcat(line, data);
+		// to split the value we include a comma
+		strcat(line, ",");
+
+		// including the name of consumer
+		strcat(line, consumerNames[i]);
+
+		// create a line into the file
+		fprintf(file, "%s", line);
+
+		// when we not reach at the final we use a newline character
+		if (i < numberOfSales - 1) {
+			fprintf(file, "\n");
+		}
+	}
+}
+
+void saveDataToFile() {
+	openFile(CSV_FILE, "w");
+
+	if (fileStatus == FILE_OPENED) {
+		writeDataToFile();
+	}
+	else if (fileStatus == FILE_ERROR) {
+		printf("When attempting to read from the file, an error occurred %s.", CSV_FILE);
+		//this tells it we're using it due to a file error
+		pauseProgram('_');
+	}
+
+	closeFile();
+}
+
+
+
+
+    void menu_greetCustomer() {
+        // welcome the user
+        printf("-----------******--------------\n");
+               printf("Welcome to TOKYO MOTORS\n");
+        printf("-----------******--------------\n");
+    }
+
+
+    void menu_showMenu() {
+        // giving menu's from the array
+        printf("Menu:\n");
+        printf("%c. View Stocks\n" , MENU_OPTION_VIEW_STOCKS);
+        printf("%c. Buy Cars\n", MENU_OPTION_BUY_CARS);
+        printf("%c. View Sales data\n", MENU_OPTION_VIEW_SALES);
+        printf("%c. Information about the company \n", MENU_OPTION_INFO);
+        printf("%c. Quit\n\n", MENU_OPTION_QUIT);
+    }
+
+    void menu_carStocks (){
+ // showing the variable
+     int i;
+     //displaying the list of cars in stock
+        printf("Car stocks:\n");
+        //looping the array
+        for (i=0; i < TOTAL_CAR_MODELS; i++) {
+            printf("%d. %s - %uGBP - %hd\n", i+1, carNames[i], carRates[i], carStocks[i]);
+        }
+    }
+
+
+
+    void displayFuelType() {
+    //taking from the array of car fuel to calculate
+        int fuelTypeCount = sizeof(carFuel) / sizeof(carFuel[0]);
+        //displaying the list of fuel
+        printf("\n Fuel Types:\n");
+        //looping the array
+        for (int i = 0; i < fuelTypeCount; i++) {
+            printf("%d - %s\n", i, carFuel[i]);
+        }
+    }
+
+    void menu_showCarTypes() {
+
+        // giving the user what type cars they needed
+        // showing type cars thet is taken from the array
+        int numberOfCars = sizeof(carNames) / sizeof(carNames[0]);
+        printf("\nCar Names:\n");
+        for (int i = 0; i < numberOfCars; i++) {
+            printf("%d - %s - %u GBP \n", i, carNames[i], carRates[i]);
+        }
+
+}
+    float menu_applyDiscount(float currentPrice) {
+        //applying discount and reducing the price (0.05) from the number of car price given from array
+        return currentPrice * (1 - DISCOUNT_PERCENTAGE);
+    }
+
+    bool menu_checkIfDiscountIsNeeded(unsigned short userAge) {
+        // giving discount if they have discount
+        if (userAge >= DISCOUNT_MIN_AGE && userAge <= DISCOUNT_MAX_AGE) {
+            return TRUE;
+        } else {
+            //  checking whether user has unidays or license , check if they have we need to give the discount
+            char nusCardResponse = getCharFromConsole("\nDo you have an unidays or license ? Answer 'y' or 'n' : ");
+            //if y giving discount
+            if (nusCardResponse == 'y') {
+                return TRUE;
+            }
+        }
+
+        // return the FALSE value to indicate that no discount is to be given
+        return FALSE;
+    }
+
+    void menu_printDiscountOutcome(bool giveDiscount) {
+        // inform the user about the discount outcome
+        // always a good idea to separate the calculation from the output messages, makes it easier to work with the code
+        switch (giveDiscount) {
+            // a discount was applied
+            // please note that no curly brackets { } are needed
+            case TRUE:
+                printf("\n Congratulation you got a discount!");
+                break;
+                // no discount was applied
+            case FALSE:
+                printf("\nSorry no discount at this time.");
+                break;
+        }
+    }
+
+    void menu_buyCars() {
+         printf("Buy Cars:\n\n");
+
+        // showing how many cars are in showroom
+        if (carsintheShowroom > 0) {
+            printf("There are %hd cars in the showroom.\n\n", carsintheShowroom);
+        } else {
+            //cars in the showroom are over
+            printf("Sorry, there are no more cars available at this moment.");
+
+            return;
+        }
+        printf("\n\n");
+
+
+
+        //this are the variables used inside the menu and sales data
+        //when a user buy  a car it update sales data
+            unsigned short carsNeeded = 1, userAge = 1, carType;
+            bool giveDiscount = FALSE;
+            float totalPrice = 0;
+
+
+            getStringFromConsole("Can you enter your name ? Enter the name: ", consumerNames[numberOfSales]);
+
+
+
+
+            // check if we have the number of  cars to buy
+            if (carsintheShowroom < carsNeeded) {
+                printf("Sorry, there are fewer cars remaining than you require.");
+
+                return;
+            }
+
+
+            // recording  the number of cars needed in the carAmountPerSale array
+            carAmountPerSale[numberOfSales] = carsNeeded;
+        displayFuelType();
+        fuelSelection= getUnsignedShortFromConsole("select the fuel:");
+
+
+            // knowing what type of car user needed
+            menu_showCarTypes();
+
+            // bringing the value shown by  the car type from the user
+            carType = getUnsignedShortFromConsole("\nWhich type of cars do you need? Choose from above: ");
+
+            //  recording  the type of these cars in the typeOfcarPerSale in array
+            typeOfCarPerSale[numberOfSales] = carType;
+
+
+            // determine the total price for this sale by utilising the price of the appropriate car type
+            totalPrice = carsNeeded * carRates[carType];
+
+            // upgrade  number of cars in the showroom by subtracting from it the amount of cars needed
+            carsintheShowroom -= carsNeeded;
+
+            // need ask the age of user to give discount
+            userAge = getUnsignedShortFromConsole("what is your age? Enter your age: ");
+
+            //  we use the function and the user's age to computing the value of giveDiscount
+            giveDiscount = menu_checkIfDiscountIsNeeded(userAge);
+
+
+            // applying the discount if needed
+            if (giveDiscount == TRUE) {
+                totalPrice = menu_applyDiscount(totalPrice);
+            }
+
+            //  capturing the oytput in the array called discountGivenPerSale
+            discountGivenPerSale[numberOfSales] = giveDiscount;
+
+            // if the discount is given we need to show the user they have got the discount
+            menu_printDiscountOutcome(giveDiscount);
+
+            // show the output
+            printf("\n\nThank you.\n");
+            printf("You have selected %s as fuel.\n",carFuel);
+            printf("Total cost is %.3f GBP.\n", totalPrice);
+            printf("\nThere are %hd cars available in the showroom.", carsintheShowroom);
+
+            numberOfSales++;
+
+
+        }
+
+
+        void sortArraysByNumberOfCarsSoldPerSale() {
+
+            // provide a loop that  help to to get a index for accessing the a value  of first and second
+            for (int i = 0; i < numberOfSales - 1; i++) {
+
+                // we creating a loop that helps us to  access the index j between first at that time and  a places which contain the value
+                //this loop is to run completely from start to end
+                for (int j = i + 1; j < numberOfSales; j++) {
+
+                    // looking the location i of value if the value is greater than the value at the  location j
+                    if (carAmountPerSale[i] > carAmountPerSale[j]) {
+
+                        //  changing two value at array called the carAmountPerSale
+                        swapUnsignedShort(&carAmountPerSale[i], &carAmountPerSale[j]);
+
+                        //  changing two value at the array typeofCarSale in the  same position
+                        swapUnsignedShort(&typeOfCarPerSale[i], &typeOfCarPerSale[j]);
+
+                        //  discountGivenPerSale array
+                        swapBool(&discountGivenPerSale[i], &discountGivenPerSale[j]);
+                        //  customerNames array
+
+                        // doing changes completely
+                        char temp[201];
+                        // string is transferred from position i to  the newly created temp variable
+                        strcpy(temp, consumerNames[i]);
+                        //  string is transferred from position j to position i
+                        strcpy(consumerNames[i], consumerNames[j]);
+                        // string is transferred from temp to position j
+                        strcpy(consumerNames[j], temp);
+
+                    }
+
+                }
+
+            }
+
+        }
+
+        void printSalesDataAtPosition(int position) {
+
+            //in here we are utilising the value explored at the position i in the typeOfCarPerSale array
+            // carPrice array is to determine the rate of the type of the car
+            int typeOfCar = typeOfCarPerSale[position];
+            // evaluate the similar sale's price
+            float price = carAmountPerSale[position] * carRates[typeOfCar];
+
+            // evaluate the display the discount text for the user's advantages
+            char discountGivenText[4];
+            // if we give a discount
+            if (discountGivenPerSale[position] == TRUE) {
+                // if yes show the text
+                strcpy(discountGivenText, "Yes");
+                // change the show text yes
+                price *= (1 - DISCOUNT_PERCENTAGE);
+            } else {
+                // change the show text no
+                strcpy(discountGivenText, "No");
+            }
+
+            // display the information that user input to each sale
+            // the main reason to breaking down the printf() command to many lines to make it easier to understand
+            printf("Sale Index: %hd | Sale Rate: %f | Name of cars: %s | "
+                   "Car Price: %d | Number of Cars: %hd | "
+                   "Discount Given: %s | Consumer Name: %s|Consumer Number:1\n",
+                    // showing that above given strings that will merged by the programme
+                   position, price, carNames[typeOfCar],
+                   carRates[typeOfCar], carAmountPerSale[position],
+                   discountGivenText, consumerNames[position]);
+
+        }
+
+
+        void menu_viewSales() {
+            // before we showing the data of the sale we need to sort the array
+            sortArraysByNumberOfCarsSoldPerSale();
+
+            /* using the variable in menu_viewSales  */
+            //  total sale price and total number of cars sold these two will contain
+            float totalSalesValue = 0;
+            unsigned int carsSold = 0;
+
+            printf("All Sales Data:\n\n");
+
+            // making the  loop that helps to run the code many time
+            // variable that show numberOfSales
+            for (int i = 0; i < numberOfSales; i++) {
+
+                //in here we uses the value we dicovered at the position i in the typeOfCarPerSale
+                //we know that the position of the carRate array will determine the rate of the type of car
+                int typeOfCar = typeOfCarPerSale[i];
+                // evaluate  the current sale's rate
+                float price = carAmountPerSale[i] * carRates[typeOfCar];
+
+                // this function is to print the row in sales
+                printSalesDataAtPosition(i);
+
+                // including total number of cars sold
+                totalSalesValue += price;
+                carsSold += carAmountPerSale[i];
+
+            }
+
+            // showing the overall data
+            printf("\n%hd cars have been sold with a total value of %f GBP. There are %hd cars unsold and are in the showroom.\n",
+                   carsSold, totalSalesValue, carsintheShowroom);
+        }
+
+        void printSalesDataBasedOnCarsSoldBetweenMinMax(unsigned short min, unsigned short max) {
+
+            printf("Sales Data containing between %hd and %hd cars sold:\n\n", min, max);
+
+            // finding the array to take a look in index
+            //	the value will contain in starting with 0 and ending the last position
+            //	checking every statement in every value
+            //	finding a value that made a relation between certain rules that means we found it
+            //		value in array is found
+
+            //checking through all location that is stored in a value in our carAmountPerSale array
+            for (int i = 0; i < numberOfSales; i++) {
+
+                // checking the value is min or max
+                if (min <= carAmountPerSale[i] && carAmountPerSale[i] <= max) {
+
+                    // printing  the sales data
+                    printSalesDataAtPosition(i);
+
+                }
+
+            }
+
+        }
+
+        void menu_companyinfo() {
+                 //declaring struct is called the information
+                struct information companyinfo;
+                //initialize the name field
+            strcpy(companyinfo.name, "TOKYO MOTORS");
+                //initialize the  founder field
+            strcpy(companyinfo.founder,"MANJIRO MIKEY SANO");
+               //initialize the year field
+            strcpy(companyinfo.year,"2008");
+              //initialize the award field
+            strcpy(companyinfo.award,"BEST ONLINE CAR SALES PLATFORM !(2004 TO 2022)");
+               //initialize the phone field
+            strcpy(companyinfo.phone,"+44 123456789");
+               //printing the field of console
+            printf("Name of the company: %s\n", companyinfo.name);
+            printf("Founder of the company: %s\n",companyinfo.founder);
+            printf("Year which company was found: %s\n",companyinfo.year);
+            printf("Award got for the company: %s\n",companyinfo.award);
+            printf("Contact number: %s\n",companyinfo.phone);
+            printf("\n\n------------------------------------------------------------**********************************--------------------------------------------------------------------\n\n");
+            printf("\nTOKYO MOTORS is big  multnational company know for manufacturing automobilies . The company was found in 2008 by MANJIRO MIKEY SANO  . The main headquartes  at uk.Overall there are 200 car showroom in different part of the world.  The TOKYO MOTORS has most beautiful  online service. \n ");
+            printf("\n\n-------------------------------------------------------------**********************************-------------------------------------------------------------------\n\n");
+        }
+        void menu_quit() {
+            printf("\n\n--------------------*******--------------------------\n\n");
+            printf("Thank you for using  Tokyo Motors  . see you soon!");
+            printf("\n\n--------------------*******--------------------------\n\n");
+            // ensure no data is lost, save it to the file
+            saveDataToFile();
+        }
+
+
+        void main() {
+
+    // checking if thee are any data stored
+    getDataFromFile();
+
+    // usage of variables in function
+    // this help us to store what user selected
+    char userChoice;
+
+    /* The remainder of our programme */
+
+    // looping the code continuously
+    do {
+        clearScreen();
+
+        menu_greetCustomer();
+        menu_showMenu();
+
+        // recording user choice finishing the return value supplied
+        userChoice = getCharFromConsole("Please enter one: ");
+
+
+        clearScreen();
+
+        //  give user a choice to make the decision
+        switch (userChoice) {
+            case MENU_OPTION_BUY_CARS:
+                menu_buyCars();
+                break;
+
+            case MENU_OPTION_VIEW_SALES:
+                menu_viewSales();
+                break;
+
+            case MENU_OPTION_QUIT:
+                menu_quit();
+                break;
+            case MENU_OPTION_VIEW_STOCKS:
+                menu_carStocks();
+                break;
+            case MENU_OPTION_INFO:
+                menu_companyinfo();
+
+        }
+
+        //showing the user  give the user to read the old outcome
+        pauseProgram(userChoice);
+    } while (userChoice != MENU_OPTION_QUIT);
+
+    // r
+    clearScreen();
+
+    // expressing gratitude to the consumer for utilising this
+    printf("\n\n*******************************\n\n");
+    printf("\n\nHave a wonderful day come again !\n\n");
+    printf("\n\n********************************\n\n");
+
+
+}
+
+
